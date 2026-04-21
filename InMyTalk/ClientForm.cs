@@ -8,13 +8,21 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
+using System.Net.Sockets;
+using System.Threading;
+using System.Net;
+
 namespace InMyTalk
 {
-	public partial class FormInMyTalk : Form
+	public partial class ClientForm : Form
 	{
-		public FormInMyTalk()
+		private TcpClient tcpClient;
+		private NetworkStream _serverStream;
+		private Thread _receiveThread;
+		public ClientForm()
 		{
 			InitializeComponent();
+
 		}
 	}
 }

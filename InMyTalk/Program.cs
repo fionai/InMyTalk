@@ -16,7 +16,7 @@ namespace InMyTalk
 		{
 			Application.EnableVisualStyles();
 			Application.SetCompatibleTextRenderingDefault(false);
-			Application.Run(new FormInMyTalk());
+			Application.Run(new ClientForm());
 		}
 	}
 }

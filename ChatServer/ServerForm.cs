@@ -13,6 +13,7 @@ namespace ChatServer
 	{
 		private TcpListener _listener;
 		private Thread _listenThread;
+		private volatile bool _isServerRunning = false;
 		private List<TcpClient> _clients;// = new List<TcpClient>();
 		public ServerForm()
 		{
@@ -25,14 +26,16 @@ namespace ChatServer
 			if (buttonStartServer.Text == "Start server")
 			{
 				buttonStartServer.Text = "Stop server";
+				_isServerRunning = true;
 				_listenThread = new Thread(ListenForClients);
 				_listenThread.Start();
 				Log($"Server started at {DateTime.Now}");
 			}
 			else
 			{
-				buttonStartServer.Text = "Start server";
+				_isServerRunning = false;
 				StopServer();
+				buttonStartServer.Text = "Start server";
 			}
 		}
 
@@ -54,22 +57,6 @@ namespace ChatServer
 
 			Log($"Server stopped at {DateTime.Now}");
 		}
-
-		//private void ListenForClients()
-		//{
-		//	_listener = new TcpListener(IPAddress.Any, 10248);
-		//	_listener.Start();
-
-		//	while (true)
-		//	{
-		//		TcpClient client = _listener.AcceptTcpClient();
-		//		_clients.Add(client);
-		//		Log($"Клиент подключен. Всего клиентов {_clients.Count}");
-
-		//		Thread clientThread = new Thread(HandleClientComm);
-		//		clientThread.Start(client);
-		//	}
-		//}
 		private void ListenForClients()
 		{
 			try
@@ -77,34 +64,34 @@ namespace ChatServer
 				_listener = new TcpListener(IPAddress.Any, 10248);
 				_listener.Start();
 
-				while (true)
+				while (_isServerRunning)
 				{
 					try
 					{
-						TcpClient client = _listener.AcceptTcpClient();
+						//TcpClient client = _listener.AcceptTcpClient();
+						_listener.Server.ReceiveTimeout = 1000;
 
-						lock (_clients)
+						if (_listener.Pending())
 						{
-							_clients.Add(client);
+							TcpClient client = _listener.AcceptTcpClient();
+							lock (_clients)
+							{
+								_clients.Add(client);
+							}
+
+							Log($"Клиент подключен. Всего клиентов {_clients.Count}");
+
+							Thread clientThread = new Thread(HandleClientComm);
+							clientThread.IsBackground = true;
+							clientThread.Start(client);
 						}
-
-						Log($"Клиент подключен. Всего клиентов {_clients.Count}");
-
-						Thread clientThread = new Thread(HandleClientComm);
-						clientThread.IsBackground = true;
-						clientThread.Start(client);
+						else Thread.Sleep(100);
 					}
-					catch (SocketException ex) when (ex.SocketErrorCode == SocketError.Interrupted)
+					catch (SocketException ex) when (ex.SocketErrorCode == SocketError.TimedOut)
 					{
 
-						Log("Server stopped - accepting new connections interrupted");
-						break;  // Выходим из цикла
+						continue;
 
-					}
-					catch (SocketException ex)
-					{
-						Log($"Socket error: {ex.Message}");
-						break;
 					}
 				}
 			}

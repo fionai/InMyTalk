@@ -134,7 +134,10 @@ namespace ChatServer
 				BroadcastMessage( receivedMessage, tcpClient );
 			} //while
 
-			_clients.Remove(tcpClient);
+			lock (_clients)
+			{
+				_clients.Remove(tcpClient);
+			}
 			tcpClient.Close();
 			Log($"Client is removed. Now received: {_clients.Count}");
 		}
@@ -142,11 +145,21 @@ namespace ChatServer
 		private void BroadcastMessage( string msg, TcpClient senderClient = null )
 		{
 			byte[] broadcastBytes = Encoding.UTF8.GetBytes( msg );
-			foreach (TcpClient client in _clients)
+			lock (_clients)
 			{
-				NetworkStream stream = client.GetStream();
-				stream.Write(broadcastBytes, 0, broadcastBytes.Length);
-				stream.Flush();
+				foreach (TcpClient client in _clients)
+				{
+					try
+					{
+						NetworkStream stream = client.GetStream();
+						stream.Write(broadcastBytes, 0, broadcastBytes.Length);
+						stream.Flush();
+					}
+					catch ( Exception ex)
+					{
+						Log($"Error sending to client: {ex.Message}");
+					}
+				}
 			}
 		}
 

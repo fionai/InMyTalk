@@ -55,19 +55,67 @@ namespace ChatServer
 			Log($"Server stopped at {DateTime.Now}");
 		}
 
+		//private void ListenForClients()
+		//{
+		//	_listener = new TcpListener(IPAddress.Any, 10248);
+		//	_listener.Start();
+
+		//	while (true)
+		//	{
+		//		TcpClient client = _listener.AcceptTcpClient();
+		//		_clients.Add(client);
+		//		Log($"Клиент подключен. Всего клиентов {_clients.Count}");
+
+		//		Thread clientThread = new Thread(HandleClientComm);
+		//		clientThread.Start(client);
+		//	}
+		//}
 		private void ListenForClients()
 		{
-			_listener = new TcpListener(IPAddress.Any, 10248);
-			_listener.Start();
-
-			while (true)
+			try
 			{
-				TcpClient client = _listener.AcceptTcpClient();
-				_clients.Add(client);
-				Log($"Клиент подключен. Всего клиентов {_clients.Count}");
+				_listener = new TcpListener(IPAddress.Any, 10248);
+				_listener.Start();
 
-				Thread clientThread = new Thread(HandleClientComm);
-				clientThread.Start(client);
+				while (true)
+				{
+					try
+					{
+						TcpClient client = _listener.AcceptTcpClient();
+
+						lock (_clients)
+						{
+							_clients.Add(client);
+						}
+
+						Log($"Клиент подключен. Всего клиентов {_clients.Count}");
+
+						Thread clientThread = new Thread(HandleClientComm);
+						clientThread.IsBackground = true;
+						clientThread.Start(client);
+					}
+					catch (SocketException ex) when (ex.SocketErrorCode == SocketError.Interrupted)
+					{
+
+						Log("Server stopped - accepting new connections interrupted");
+						break;  // Выходим из цикла
+
+					}
+					catch (SocketException ex)
+					{
+						Log($"Socket error: {ex.Message}");
+						break;
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				Log($"ListenForClients error: {ex.Message}");
+			}
+			finally
+			{
+				_listener?.Stop();
+				Log("ListenForClients thread finished");
 			}
 		}
 

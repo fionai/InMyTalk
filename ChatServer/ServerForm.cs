@@ -21,7 +21,7 @@ namespace ChatServer
 			_clients = new List<TcpClient>();
 		}
 
-		private void buttonStartServer_Click(object sender, EventArgs e) 
+		private void buttonStartServer_Click(object sender, EventArgs e)
 		{
 			if (buttonStartServer.Text == "Start server")
 			{
@@ -79,11 +79,14 @@ namespace ChatServer
 								_clients.Add(client);
 							}
 
-							Log($"Клиент подключен. Всего клиентов {_clients.Count}");
+							Log($"Client is connected. Now received {_clients.Count}");
 
 							Thread clientThread = new Thread(HandleClientComm);
+							Log("Thread clientThread = new Thread(HandleClientComm);");
 							clientThread.IsBackground = true;
+							Log("clientThread.IsBackground = true;");
 							clientThread.Start(client);
+							Log("clientThread.Start(client);");
 						}
 						else Thread.Sleep(100);
 					}
@@ -112,26 +115,39 @@ namespace ChatServer
 			NetworkStream clientStream = tcpClient.GetStream();
 			byte[] message = new byte[4096];
 			int bytesRead = 0;
+
+			////////////////////////////////////////////////////
+			string clientEndpoint = tcpClient.Client.RemoteEndPoint?.ToString() ?? "Unknown";
+			Log($"Начало обработки клиента {clientEndpoint}");
+			///////////////////////////////////////////////////
+
+
+
+
 			while (true)
 			{
 				bytesRead = 0;
 				try
 				{
+					Log($"Ожидание данных от {clientEndpoint}..."); /////////////////////////////////////////////////
 					bytesRead = clientStream.Read(message, 0, 4096);
+					Log($"Прочитано {bytesRead} байт от {clientEndpoint}"); ////////////////////////////////////////////
 				}
-				catch
+				catch (Exception ex)
 				{
+					Log($"Ошибка чтения от {clientEndpoint}: {ex.Message}"); /////////////////////////////////////////
 					break;
 				}
 				if (bytesRead == 0)
 				{
+					Log($"Клиент {clientEndpoint} отправил 0 байт (закрыл соединение)"); /////////////////////////////////////
 					break;
 				}
 
 				string receivedMessage = Encoding.UTF8.GetString(message, 0, bytesRead);
 				Log($"Received: {receivedMessage}");
 
-				BroadcastMessage( receivedMessage, tcpClient );
+				BroadcastMessage(receivedMessage, tcpClient);
 			} //while
 
 			lock (_clients)
@@ -142,9 +158,9 @@ namespace ChatServer
 			Log($"Client is removed. Now received: {_clients.Count}");
 		}
 
-		private void BroadcastMessage( string msg, TcpClient senderClient = null )
+		private void BroadcastMessage(string msg, TcpClient senderClient = null)
 		{
-			byte[] broadcastBytes = Encoding.UTF8.GetBytes( msg );
+			byte[] broadcastBytes = Encoding.UTF8.GetBytes(msg);
 			lock (_clients)
 			{
 				foreach (TcpClient client in _clients)
@@ -155,7 +171,7 @@ namespace ChatServer
 						stream.Write(broadcastBytes, 0, broadcastBytes.Length);
 						stream.Flush();
 					}
-					catch ( Exception ex)
+					catch (Exception ex)
 					{
 						Log($"Error sending to client: {ex.Message}");
 					}
@@ -163,7 +179,7 @@ namespace ChatServer
 			}
 		}
 
-		private void Log( string msg )
+		private void Log(string msg)
 		{
 			if (rtbLogs.InvokeRequired)
 			{
@@ -173,6 +189,11 @@ namespace ChatServer
 			{
 				rtbLogs.AppendText($"{msg}{Environment.NewLine}");
 			}
+		}
+
+		private void ServerForm_FormClosing(object sender, FormClosingEventArgs e)
+		{
+			StopServer();
 		}
 	}
 }

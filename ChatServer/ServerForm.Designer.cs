@@ -66,6 +66,7 @@
 			Margin = new Padding(4, 5, 4, 5);
 			Name = "ServerForm";
 			Text = "LittleChat Server";
+			FormClosing += ServerForm_FormClosing;
 			ResumeLayout(false);
 		}
 

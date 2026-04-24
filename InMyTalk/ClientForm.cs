@@ -11,6 +11,7 @@ using System.Windows.Forms;
 using System.Net.Sockets;
 using System.Threading;
 using System.Net;
+using System.IO;
 
 namespace InMyTalk
 {
@@ -27,31 +28,83 @@ namespace InMyTalk
 			try
 			{
 				_tcpClient = new TcpClient();
-				_tcpClient.Connect("127.0.0.1", 10248);   //на время теста test
+				_tcpClient.Connect("127.0.0.1", 10248);   //такой IP на время теста test
 				_serverStream = _tcpClient.GetStream();
+				_isConnected = true;
 
 				//AppendToChat("");
 
 				_receiveThread = new Thread(ReceiveMessage);
+				_receiveThread.IsBackground = true;
 				_receiveThread.Start();
 			}
 			catch (Exception ex)
 			{
 				MessageBox.Show($"Ошибка подключения: {ex.Message}");
+				_isConnected = false;
 			}
+		}
+
+		
+
+		private void DisconnectFromServer()
+		{
+			_isConnected = false;
+
+			try
+			{
+				_serverStream?.Close();
+				_tcpClient?.Close();
+			}
+			catch { }
+			AppendToChat(">>> Отключено от сервера.");
 		}
 
 		private void buttonSend_Click(object sender, EventArgs e)
 		{
-			if (!string.IsNullOrWhiteSpace(textBoxInput.Text))
+			//if (!string.IsNullOrWhiteSpace(textBoxInput.Text))
+			//{
+			//	string msg = textBoxInput.Text;
+			//	byte[] sendBytes = Encoding.UTF8.GetBytes(msg);
+			//	_serverStream.Write(sendBytes, 0, sendBytes.Length);
+			//	_serverStream.Flush();
+
+			//	AppendToChat($"Я: {msg}");
+			//	textBoxInput.Clear();
+			//}
+			if (!_isConnected || _tcpClient == null || !_tcpClient.Connected)
+			{
+				AppendToChat("No connection to server");
+				DisconnectFromServer();
+				return;
+			}
+			if (string.IsNullOrWhiteSpace(textBoxInput.Text)) return;
+
+			try
 			{
 				string msg = textBoxInput.Text;
 				byte[] sendBytes = Encoding.UTF8.GetBytes(msg);
-				_serverStream.Write(sendBytes, 0, sendBytes.Length);
-				_serverStream.Flush();
+
+				lock (_sendLock)
+				{
+					if (_serverStream != null && _tcpClient.Connected)
+					{
+						_serverStream.Write(sendBytes, 0, sendBytes.Length);
+						_serverStream.Flush();
+					}
+				}
 
 				AppendToChat($"Я: {msg}");
 				textBoxInput.Clear();
+			}
+			catch (IOException ex)
+			{
+				AppendToChat($"Error: connection is lost. {ex.Message}");
+				DisconnectFromServer();
+			}
+			catch (Exception ex)
+			{
+				AppendToChat($"Error sending: {ex.Message}");
 			}
 		}
 

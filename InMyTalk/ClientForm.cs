@@ -25,14 +25,19 @@ namespace InMyTalk
 		public ClientForm()
 		{
 			InitializeComponent();
+			if (!_isConnected)  ConnectToServer();
+		}
+
+		private async void ConnectToServer()
+		{
 			try
 			{
 				_tcpClient = new TcpClient();
-				_tcpClient.Connect("127.0.0.1", 10248);   //такой IP на время теста test
+				await _tcpClient.ConnectAsync("127.0.0.1", 10248);   //такой IP на время теста test
 				_serverStream = _tcpClient.GetStream();
 				_isConnected = true;
 
-				//AppendToChat("");
+				AppendToChat(">>> Подключено к серверу!");
 
 				_receiveThread = new Thread(ReceiveMessage);
 				_receiveThread.IsBackground = true;
@@ -43,9 +48,8 @@ namespace InMyTalk
 				MessageBox.Show($"Ошибка подключения: {ex.Message}");
 				_isConnected = false;
 			}
-		}
 
-		
+		}
 
 		private void DisconnectFromServer()
 		{
@@ -62,16 +66,6 @@ namespace InMyTalk
 
 		private void buttonSend_Click(object sender, EventArgs e)
 		{
-			//if (!string.IsNullOrWhiteSpace(textBoxInput.Text))
-			//{
-			//	string msg = textBoxInput.Text;
-			//	byte[] sendBytes = Encoding.UTF8.GetBytes(msg);
-			//	_serverStream.Write(sendBytes, 0, sendBytes.Length);
-			//	_serverStream.Flush();
-
-			//	AppendToChat($"Я: {msg}");
-			//	textBoxInput.Clear();
-			//}
 			if (!_isConnected || _tcpClient == null || !_tcpClient.Connected)
 			{
 				AppendToChat("No connection to server");

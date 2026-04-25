@@ -40,9 +40,12 @@
             | System.Windows.Forms.AnchorStyles.Right)));
 			this.listBoxChat.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F);
 			this.listBoxChat.FormattingEnabled = true;
+			this.listBoxChat.HorizontalScrollbar = true;
 			this.listBoxChat.ItemHeight = 26;
 			this.listBoxChat.Location = new System.Drawing.Point(16, 80);
+			this.listBoxChat.MultiColumn = true;
 			this.listBoxChat.Name = "listBoxChat";
+			this.listBoxChat.SelectionMode = System.Windows.Forms.SelectionMode.MultiSimple;
 			this.listBoxChat.Size = new System.Drawing.Size(1524, 550);
 			this.listBoxChat.TabIndex = 2;
 			// 
